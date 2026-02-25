@@ -102,13 +102,13 @@
     <label for="epInput">Τρέχον Επεισόδιο στο Arc:</label>
     <div class="controls">
         <button onclick="changeEp(-1)">-</button>
-        <input type="number" id="epInput" value="1" min="1" onchange="updateData()" style="width: 55%; text-align: center; font-weight: bold;">
+        <input type="number" id="epInput" value="1" min="1" max="39" onchange="updateData()" style="width: 55%; text-align: center; font-weight: bold;">
         <button onclick="changeEp(1)">+</button>
     </div>
 
     <div class="stats">
-        <div>Σου έχουν μείνει ΜΟΝΟ: <strong id="remVideos">234</strong></div>
-        <div>Ισοδύναμα έχεις ήδη δει: <strong id="eqProgress">779</strong> / 1155</div>
+        <div>Σου μένουν ΜΟΝΟ: <strong id="remVideos">234</strong> eps</div>
+        <div>Ισοδύναμα έχεις δει: <strong id="eqProgress">779</strong> / 1155</div>
         <div class="hint" id="suggestedPace">Ενδεικτικός ρυθμός: - Επεισόδια / Ημέρα</div>
     </div>
 
@@ -118,7 +118,6 @@
 </div>
 
 <script>
-    // Δεδομένα των Arcs με την μαθηματική αντιστοιχία τους
     const arcs = [
         { id: 'wci', limit: 39, eqLimit: 95 },
         { id: 'reverie', limit: 3, eqLimit: 12 },
@@ -129,7 +128,6 @@
     const totalVideos = 234; 
     const baseEq = 779; 
 
-    // Ανάκτηση δεδομένων από τον browser (LocalStorage)
     function loadData() {
         const saved = JSON.parse(localStorage.getItem('onePieceTracker'));
         if (saved) {
@@ -139,11 +137,9 @@
         updateData();
     }
 
-    // Αλλαγή Επεισοδίου από τα Κουμπιά + και -
     function changeEp(step) {
-        let current = parseInt(document.getElementById('epInput').value) |
-
-| 1;
+        // Εδώ διορθώθηκε το συντακτικό σφάλμα με το ||
+        let current = parseInt(document.getElementById('epInput').value) || 1;
         let arcIndex = parseInt(document.getElementById('arcSelect').value);
         let max = arcs[arcIndex].limit;
 
@@ -155,44 +151,42 @@
         updateData();
     }
 
-    // Κεντρικός Υπολογισμός Δεδομένων
     function updateData() {
         let arcIndex = parseInt(document.getElementById('arcSelect').value);
-        let currentEp = parseInt(document.getElementById('epInput').value) |
-
-| 1;
+        // Εδώ διορθώθηκε το δεύτερο συντακτικό σφάλμα
+        let currentEp = parseInt(document.getElementById('epInput').value) || 1;
         
-        // Ασφάλεια: Να μην ξεπεράσει το όριο των επεισοδίων του arc
-        if (currentEp > arcs[arcIndex].limit) {
-            currentEp = arcs[arcIndex].limit;
+        // Ορισμός του δυναμικού ορίου (cap) στο πεδίο input
+        let maxLimit = arcs[arcIndex].limit;
+        document.getElementById('epInput').max = maxLimit;
+        
+        // Ασφάλεια: Αν ο χρήστης γράψει με το πληκτρολόγιο αριθμό μεγαλύτερο από το επιτρεπτό
+        if (currentEp > maxLimit) {
+            currentEp = maxLimit;
             document.getElementById('epInput').value = currentEp;
         }
 
         let videosWatched = 0;
         let eqWatched = baseEq;
 
-        // Υπολογισμός προόδου βάσει του επιλεγμένου Arc
         for (let i = 0; i < arcs.length; i++) {
             if (i < arcIndex) {
                 videosWatched += arcs[i].limit;
                 eqWatched += arcs[i].eqLimit;
             } else if (i === arcIndex) {
                 videosWatched += currentEp;
-                // Γραμμική Παρεμβολή για τα Ισοδύναμα Επεισόδια (στρογγυλοποίηση προς τα κάτω)
                 eqWatched += Math.floor((currentEp / arcs[i].limit) * arcs[i].eqLimit);
             }
         }
 
         let remVideos = totalVideos - videosWatched;
         
-        // Ενημέρωση της Οθόνης
         document.getElementById('remVideos').innerText = remVideos;
         document.getElementById('eqProgress').innerText = eqWatched;
         
         let percent = (eqWatched / 1155) * 100;
         document.getElementById('progressBar').style.width = percent + "%";
 
-        // Αποθήκευση στον Browser
         localStorage.setItem('onePieceTracker', JSON.stringify({
             arcIndex: arcIndex,
             currentEp: currentEp
@@ -202,7 +196,6 @@
         checkTransition(arcIndex, currentEp);
     }
 
-    // Αντίστροφη Μέτρηση για τις 5 Απριλίου 2026
     const targetDate = new Date("2026-04-05T00:00:00Z").getTime();
     
     function updateTimer() {
@@ -223,7 +216,6 @@
             days + "η " + hours + "ω " + minutes + "λ " + seconds + "δ";
     }
 
-    // Υπολογισμός Ενδεικτικού Ημερήσιου Ρυθμού
     function calculatePace(remVideos) {
         const now = new Date().getTime();
         const distance = targetDate - now;
@@ -239,7 +231,6 @@
         }
     }
 
-    // Ειδοποίηση Μετάβασης από Pace στο Αυθεντικό
     function checkTransition(arcIndex, currentEp) {
         if (arcIndex === 2 && currentEp === 58) {
             setTimeout(() => {
@@ -248,7 +239,6 @@
         }
     }
 
-    // Εκκίνηση Ρολογιού και Ανάκτηση Δεδομένων κατά το άνοιγμα
     setInterval(updateTimer, 1000);
     updateTimer();
     window.onload = loadData;
